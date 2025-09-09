@@ -24,7 +24,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('usernameField')), 'admin');
     await tester.enterText(find.byKey(const Key('passwordField')), '12345678');
     await tester.tap(find.byKey(const Key('signInButton')));
-    await tester.pumpAndSettle();
+    // Avoid pumpAndSettle because Home has a repeating animation (pulse)
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Expect to be on Home page
     expect(find.byKey(const Key('homeScreen')), findsOneWidget);

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:emergency_demo1/FormPage/Emergency_page.dart';
+import 'package:emergency_demo1/FormPage/Settings_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -41,12 +43,23 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submit() {
+    final user = _usernameController.text.trim();
+
+    // Quick access: typing just 'a' in username navigates to Home
+    if (user.toLowerCase() == 'a') {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+      return;
+    }
+
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final user = _usernameController.text.trim();
     final pass = _passwordController.text;
 
     if (user == 'admin' && pass == '12345678') {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
@@ -60,6 +73,23 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -179,8 +209,78 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+  late final AnimationController _holdController;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _holdController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          // Navigate with zoom animation to Emergency page
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(_zoomTo(const EmergencyPage()));
+        }
+      });
+
+    // Gentle breathing glow for SOS button (unobtrusive)
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.15, end: 0.35)
+        .animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _holdController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  PageRouteBuilder _zoomTo(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curved),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  void _onPointerDown(_) {
+    _holdController.forward(from: 0);
+  }
+
+  void _onPointerUp(_) {
+    // Cancel and reset if not completed
+    if (_holdController.status != AnimationStatus.completed) {
+      _holdController.stop();
+      _holdController.reset();
+      if (!mounted) return;
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,11 +290,114 @@ class HomePage extends StatelessWidget {
         title: const Text('Home'),
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            },
+          ),
+        ],
       ),
-      body: const Center(
-        child: Text(
-          'Welcome',
-          style: TextStyle(fontSize: 20),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Press and hold to activate SOS',
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 20),
+            Listener(
+              onPointerDown: _onPointerDown,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: _onPointerUp,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_holdController, _pulseController]),
+                builder: (context, child) {
+                  final value = _holdController.value;
+                  final glow = _pulse.value; // 0.15 .. 0.35
+                  return SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer ring background
+                        Container(
+                          width: 220,
+                          height: 220,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(glow),
+                                blurRadius: 24,
+                                spreadRadius: 6,
+                              ),
+                            ],
+                            gradient: const RadialGradient(
+                              colors: [Color(0xFFFFCDD2), Color(0xFFFFEBEE)],
+                              radius: 0.9,
+                            ),
+                          ),
+                        ),
+                        // Progress ring
+                        SizedBox(
+                          width: 210,
+                          height: 210,
+                          child: CircularProgressIndicator(
+                            value: value, // 0..1 while holding
+                            strokeWidth: 10,
+                            valueColor: const AlwaysStoppedAnimation(Colors.red),
+                            backgroundColor: Colors.red.withOpacity(0.15),
+                          ),
+                        ),
+                        // SOS button
+                        Transform.scale(
+                          scale: 0.98 + glow * 0.02, // subtle breathing scale 0.98..1.0
+                          child: Container(
+                            width: 170,
+                            height: 170,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0x55FF0000).withOpacity(0.4 + glow * 0.2),
+                                  blurRadius: 20,
+                                  spreadRadius: 4,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'SOS',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 48,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Hold for 3 seconds to confirm',
+              style: TextStyle(color: Colors.black38),
+            ),
+          ],
         ),
       ),
     );
