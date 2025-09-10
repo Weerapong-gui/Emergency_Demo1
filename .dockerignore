@@ -1,0 +1,11 @@
+# Keep images small and avoid copying build artifacts and VCS metadata
+.git
+.gitignore
+.idea
+.dart_tool
+**/build
+**/.gradle
+**/.DS_Store
+**/*.iml
+**/local.properties
+
