@@ -48,7 +48,11 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontSize: 13,
+          color: Colors.black54,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -56,10 +60,7 @@ class _SectionTitle extends StatelessWidget {
 
 class _SettingTile extends StatelessWidget {
   const _SettingTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-  });
+  const _SettingTile({required this.icon, required this.title, this.subtitle});
 
   final IconData icon;
   final String title;
@@ -79,4 +80,3 @@ class _SettingTile extends StatelessWidget {
     );
   }
 }
-
