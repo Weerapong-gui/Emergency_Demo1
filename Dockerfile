@@ -21,5 +21,4 @@ EXPOSE 8080
 
 # Run the app via Flutter's built-in web server
 # Note: This is for development/demo; for production prefer `flutter build web` and a static server.
-CMD ["bash", "-lc", "if [ -f pubspec.yaml ]; then flutter pub get; fi; flutter run -d web-server --web-hostname=0.0.0.0 --web-port=8080"]
-
+CMD ["bash", "-lc", "if [ ! -f pubspec.yaml ]; then echo 'Error: pubspec.yaml not found in /app/emergency_demo1'; exit 1; fi; flutter pub get; flutter run -d web-server --web-hostname=0.0.0.0 --web-port=8080"]
